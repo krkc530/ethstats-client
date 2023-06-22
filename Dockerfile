@@ -31,31 +31,22 @@
 #
 ## If you now want to deploy a new client version, just redo the second step.
 
+FROM node:lts-alpine AS builder
 
-FROM debian
 
-RUN apt-get update &&\
-    apt-get install -y curl git-core &&\
-    curl -sL https://deb.nodesource.com/setup | bash - &&\
-    apt-get update &&\
-    apt-get install -y nodejs
+WORKDIR /ethstats-client
+COPY ["package.json", "package-lock.json*", "./"]
+RUN npm ci --only=production
+COPY --chown=node:node . .
 
-RUN apt-get update &&\
-    apt-get install -y build-essential
+FROM node:lts-alpine
+RUN apk add dumb-init
+WORKDIR /ethstats-client
+COPY --chown=node:node --from=builder /ethstats-client .
+RUN chmod +x start.sh
+RUN npm i -g pm2
+# RUN apk add --no-cache curl
+RUN chmod -R 777 /ethstats-client
 
-RUN adduser ethnetintel
-
-RUN cd /home/ethnetintel &&\
-    git clone https://github.com/cubedro/eth-net-intelligence-api &&\
-    cd eth-net-intelligence-api &&\
-    npm install &&\
-    npm install -g pm2
-
-RUN echo '#!/bin/bash\nset -e\n\ncd /home/ethnetintel/eth-net-intelligence-api\n/usr/bin/pm2 start ./app.json\ntail -f \
-    /home/ethnetintel/.pm2/logs/node-app-out-0.log' > /home/ethnetintel/startscript.sh
-
-RUN chmod +x /home/ethnetintel/startscript.sh &&\
-    chown -R ethnetintel. /home/ethnetintel
-
-USER ethnetintel
-ENTRYPOINT ["/home/ethnetintel/startscript.sh"]
+USER node
+ENTRYPOINT [ "/ethstats-client/start.sh" ]
