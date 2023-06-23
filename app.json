@@ -12,7 +12,6 @@
     {
       "NODE_ENV"        : "production",
       "LISTENING_PORT"  : "30303",
-      "INSTANCE_NAME"   : "node-instance",
       "VERBOSITY"       : 2
     }
   }
